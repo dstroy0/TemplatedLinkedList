@@ -1,5 +1,7 @@
-#ifndef CIRCULAR_SINGLY_LINKED_H
-#define CIRCULAR_SINGLY_LINKED_H
+#ifndef SINGLY_LINKED_LIST_H
+#define SINGLY_LINKED_LIST_H
+
+#include <Arduino.h>
 
 /// @brief inheritable linked-list framework
 template <typename NodeStorageType, typename... StorageArgs>
@@ -78,6 +80,192 @@ private:
     void delete_node(int position);
 };
 
-#include "singly.cpp"
+// Implementation of template functions
 
-#endif // CIRCULAR_SINGLY_LINKED_H
+template <typename NodeStorageType, typename... StorageArgs>
+singlylist<NodeStorageType, StorageArgs...>::singlylist()
+    : head(nullptr), tail(nullptr), list_nodes(0)
+{
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+singlylist<NodeStorageType, StorageArgs...>::~singlylist()
+{
+    clear();
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+singlylist<NodeStorageType, StorageArgs...>::singlynode::singlynode(NodeStorageType *storage_pointer)
+    : sp(storage_pointer), n(nullptr)
+{
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
+singlylist<NodeStorageType, StorageArgs...>::insertAtBeginning(StorageArgs... args)
+{
+    singlynode *temp = create_node(args...);
+    if (list_nodes == 0) // empty list
+    {
+        head = tail = temp;
+    }
+    else
+    {
+        temp->n = head;
+        head = temp;
+    }
+    list_nodes++;
+    return head;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+void singlylist<NodeStorageType, StorageArgs...>::clear()
+{
+    while (list_nodes > 0)
+    {
+        removeAtBeginning();
+    }
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
+singlylist<NodeStorageType, StorageArgs...>::insertAtEnd(StorageArgs... args)
+{
+    singlynode *temp = create_node(args...);
+    if (list_nodes == 0) // empty list
+    {
+        head = tail = temp;
+    }
+    else
+    {
+        tail->n = temp;
+        tail = temp;
+    }
+    list_nodes++;
+    return tail;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
+singlylist<NodeStorageType, StorageArgs...>::insertAtPosition(int position, StorageArgs... args)
+{
+    if (position < 1 || position > list_nodes + 1)
+    {
+        return nullptr; // position out of range
+    }
+    if (position == 1)
+    {
+        return insertAtBeginning(args...);
+    }
+    if (position == list_nodes + 1)
+    {
+        return insertAtEnd(args...);
+    }
+
+    singlynode *prev = getNode(position - 1);
+    singlynode *temp = create_node(args...);
+    if (prev == nullptr || temp == nullptr)
+    {
+        return nullptr;
+    }
+    temp->n = prev->n;
+    prev->n = temp;
+    list_nodes++;
+    return temp;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+bool singlylist<NodeStorageType, StorageArgs...>::deleteFromPosition(int position)
+{
+    if (position < 1 || position > list_nodes)
+    {
+        return false; // position out of range
+    }
+    delete_node(position);
+    return true;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+NodeStorageType *singlylist<NodeStorageType, StorageArgs...>::getStoragePtr(int position)
+{
+    singlynode *access = getNode(position);
+    return access ? access->sp : nullptr;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
+singlylist<NodeStorageType, StorageArgs...>::getNode(int position)
+{
+    if (position < 1 || position > list_nodes)
+    {
+        return nullptr; // position out of range
+    }
+    singlynode *current = head;
+    for (int i = 1; i < position; ++i)
+    {
+        current = current->n;
+    }
+    return current;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+void singlylist<NodeStorageType, StorageArgs...>::removeAtBeginning()
+{
+    if (list_nodes == 0)
+        return;
+
+    singlynode *temp = head;
+    head = head->n;
+    deallocate_node(temp);
+    if (--list_nodes == 0)
+    {
+        tail = nullptr;
+    }
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
+singlylist<NodeStorageType, StorageArgs...>::create_node(StorageArgs... args)
+{
+    storage_ptr = new NodeStorageType{args...};
+    singlynode *new_node = new singlynode(storage_ptr);
+    if (new_node == nullptr || storage_ptr == nullptr)
+    {
+        delete storage_ptr;
+        delete new_node;
+        return nullptr;
+    }
+    return new_node;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+void singlylist<NodeStorageType, StorageArgs...>::deallocate_node(singlynode *dealloc_node)
+{
+    if (dealloc_node != nullptr)
+    {
+        delete dealloc_node->sp;
+        delete dealloc_node;
+    }
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+void singlylist<NodeStorageType, StorageArgs...>::delete_node(int position)
+{
+    if (position == 1)
+    {
+        removeAtBeginning();
+        return;
+    }
+
+    singlynode *prev = getNode(position - 1);
+    singlynode *current = prev->n;
+    prev->n = current->n;
+    if (current == tail)
+    {
+        tail = prev;
+    }
+    deallocate_node(current);
+    list_nodes--;
+}
+
+#endif // SINGLY_LINKED_LIST_H

@@ -4,4 +4,4 @@
 #include "singly.h"
 #include "circulardoublylinked.h"
 
-#endif // TEMPLATEDLINKEDLIST_H
+#endif
