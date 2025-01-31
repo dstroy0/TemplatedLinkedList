@@ -60,10 +60,19 @@ public:
     /// @brief removes a node from the beginning of the list
     void removeAtBeginning();
 
+    /// @brief gets the last accessed node
+    /// @return pointer to the last accessed node
+    singlynode *getLastAccessedNode();
+
+    /// @brief gets the storage pointer of the last accessed node
+    /// @return pointer to storage of the last accessed node
+    NodeStorageType *getLastAccessedNodeStoragePtr();
+
 private:
     NodeStorageType *storage_ptr; ///< pointer to storage
     singlynode *head;             ///< list head
     singlynode *tail;             ///< list tail
+    singlynode *lastnode;         ///< last accessed node
     size_t list_nodes;            ///< number of list members
 
     /// @brief creates a new node
@@ -84,7 +93,7 @@ private:
 
 template <typename NodeStorageType, typename... StorageArgs>
 singlylist<NodeStorageType, StorageArgs...>::singlylist()
-    : head(nullptr), tail(nullptr), list_nodes(0)
+    : head(nullptr), tail(nullptr), lastnode(nullptr), list_nodes(0)
 {
 }
 
@@ -225,6 +234,19 @@ void singlylist<NodeStorageType, StorageArgs...>::removeAtBeginning()
 
 template <typename NodeStorageType, typename... StorageArgs>
 typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
+singlylist<NodeStorageType, StorageArgs...>::getLastAccessedNode()
+{
+    return lastnode ? lastnode : nullptr;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+NodeStorageType *singlylist<NodeStorageType, StorageArgs...>::getLastAccessedNodeStoragePtr()
+{
+    return lastnode ? lastnode->sp : nullptr;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
 singlylist<NodeStorageType, StorageArgs...>::create_node(StorageArgs... args)
 {
     storage_ptr = new NodeStorageType{args...};
@@ -235,6 +257,7 @@ singlylist<NodeStorageType, StorageArgs...>::create_node(StorageArgs... args)
         delete new_node;
         return nullptr;
     }
+    lastnode = new_node;
     return new_node;
 }
 

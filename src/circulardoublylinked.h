@@ -24,12 +24,15 @@ public:
     bool deleteFromPosition(int position);
     void clear();
     NodeStorageType *getStoragePtr(int position);
+    circlynode *getLastAccessedNode();
+    NodeStorageType *getLastAccessedNodeStoragePtr();
 
 private:
     circlynode *getNode(int position);
     circlynode *head;
     circlynode *tail;
     circlynode *node_ptr;
+    circlynode *lastnode;
     NodeStorageType *storage_ptr;
     int list_nodes;
 };
@@ -215,6 +218,19 @@ circulardoublylist<NodeStorageType, StorageArgs...>::getNode(int position)
         }
     }
     return node_ptr;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+typename circulardoublylist<NodeStorageType, StorageArgs...>::circlynode *
+circulardoublylist<NodeStorageType, StorageArgs...>::getLastAccessedNode()
+{
+    return lastnode ? lastnode : nullptr;
+}
+
+template <typename NodeStorageType, typename... StorageArgs>
+NodeStorageType *circulardoublylist<NodeStorageType, StorageArgs...>::getLastAccessedNodeStoragePtr()
+{
+    return lastnode ? lastnode->sp : nullptr;
 }
 
 #endif // CIRCULAR_DOUBLY_LINKED_LIST_H
