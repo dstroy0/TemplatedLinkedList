@@ -69,11 +69,10 @@ public:
     NodeStorageType *getLastAccessedNodeStoragePtr();
 
 private:
-    NodeStorageType *storage_ptr; ///< pointer to storage
-    singlynode *head;             ///< list head
-    singlynode *tail;             ///< list tail
-    singlynode *lastnode;         ///< last accessed node
-    size_t list_nodes;            ///< number of list members
+    singlynode *head;     ///< list head
+    singlynode *tail;     ///< list tail
+    singlynode *lastnode; ///< last accessed node
+    size_t list_nodes;    ///< number of list members
 
     /// @brief creates a new node
     /// @param args Arguments to construct the storage
@@ -93,7 +92,7 @@ private:
 
 template <typename NodeStorageType, typename... StorageArgs>
 singlylist<NodeStorageType, StorageArgs...>::singlylist()
-    : head(nullptr), tail(nullptr), lastnode(nullptr), list_nodes(0)
+    : head(nullptr), tail(nullptr), lastnode(nullptr), list_nodes(0U)
 {
 }
 
@@ -158,7 +157,7 @@ template <typename NodeStorageType, typename... StorageArgs>
 typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
 singlylist<NodeStorageType, StorageArgs...>::insertAtPosition(int position, StorageArgs... args)
 {
-    if (position < 1 || position > list_nodes + 1)
+    if (position < 1 || position > (int)(list_nodes + 1))
     {
         return nullptr; // position out of range
     }
@@ -166,7 +165,7 @@ singlylist<NodeStorageType, StorageArgs...>::insertAtPosition(int position, Stor
     {
         return insertAtBeginning(args...);
     }
-    if (position == list_nodes + 1)
+    if (position == (int)(list_nodes + 1))
     {
         return insertAtEnd(args...);
     }
@@ -186,7 +185,7 @@ singlylist<NodeStorageType, StorageArgs...>::insertAtPosition(int position, Stor
 template <typename NodeStorageType, typename... StorageArgs>
 bool singlylist<NodeStorageType, StorageArgs...>::deleteFromPosition(int position)
 {
-    if (position < 1 || position > list_nodes)
+    if (position < 1 || position > (int)list_nodes)
     {
         return false; // position out of range
     }
@@ -205,7 +204,7 @@ template <typename NodeStorageType, typename... StorageArgs>
 typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
 singlylist<NodeStorageType, StorageArgs...>::getNode(int position)
 {
-    if (position < 1 || position > list_nodes)
+    if (position < 1 || position > (int)list_nodes)
     {
         return nullptr; // position out of range
     }
@@ -214,6 +213,7 @@ singlylist<NodeStorageType, StorageArgs...>::getNode(int position)
     {
         current = current->n;
     }
+    lastnode = current;
     return current;
 }
 
@@ -236,7 +236,7 @@ template <typename NodeStorageType, typename... StorageArgs>
 typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
 singlylist<NodeStorageType, StorageArgs...>::getLastAccessedNode()
 {
-    return lastnode ? lastnode : nullptr;
+    return lastnode;
 }
 
 template <typename NodeStorageType, typename... StorageArgs>
@@ -249,12 +249,15 @@ template <typename NodeStorageType, typename... StorageArgs>
 typename singlylist<NodeStorageType, StorageArgs...>::singlynode *
 singlylist<NodeStorageType, StorageArgs...>::create_node(StorageArgs... args)
 {
-    storage_ptr = new NodeStorageType{args...};
-    singlynode *new_node = new singlynode(storage_ptr);
-    if (new_node == nullptr || storage_ptr == nullptr)
+    NodeStorageType *sp = new NodeStorageType{args...};
+    if (sp == nullptr)
     {
-        delete storage_ptr;
-        delete new_node;
+        return nullptr;
+    }
+    singlynode *new_node = new singlynode(sp);
+    if (new_node == nullptr)
+    {
+        delete sp;
         return nullptr;
     }
     lastnode = new_node;

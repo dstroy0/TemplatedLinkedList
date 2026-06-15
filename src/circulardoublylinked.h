@@ -3,42 +3,80 @@
 
 #include <Arduino.h>
 
+/// @brief inheritable circular doubly linked-list framework
 template <typename NodeStorageType, typename... StorageArgs>
 class circulardoublylist
 {
 public:
+    /// @brief Constructor for the linked-list
     circulardoublylist();
+
+    /// @brief Destructor for the linked-list
     ~circulardoublylist();
 
+    /// @brief list node with pointers to next, previous, and storage
     struct circlynode
     {
+        /// @brief list node structure, contains pointers to next, previous, and storage
+        /// @param storage_pointer pointer of type NodeStorageType
         circlynode(NodeStorageType *storage_pointer);
-        NodeStorageType *sp;
-        circlynode *n;
-        circlynode *p;
+        NodeStorageType *sp; ///< pointer to storage
+        circlynode *n;       ///< pointer to next list member (wraps to head)
+        circlynode *p;       ///< pointer to previous list member (wraps to tail)
     };
 
+    /// @brief inserts a node at the beginning of the list
+    /// @param args Arguments to construct the storage
+    /// @return node that was inserted
     circlynode *insertAtBeginning(StorageArgs... args);
+
+    /// @brief inserts a node at the end of the list
+    /// @param args Arguments to construct the storage
+    /// @return node that was inserted
     circlynode *insertAtEnd(StorageArgs... args);
+
+    /// @brief inserts a node at position
+    /// @param position 1-... position in the list to insert
+    /// @param args Arguments to construct the storage
+    /// @return null on error
     circlynode *insertAtPosition(int position, StorageArgs... args);
+
+    /// @brief deletes the node at position
+    /// @param position 1-... position of node to delete
+    /// @return true on success, false if position is out of range
     bool deleteFromPosition(int position);
+
+    /// @brief clears the list and deallocates memory
     void clear();
+
+    /// @brief gets the storage pointer at position
+    /// @param position 1-... position in the list
+    /// @return pointer to storage at position, or null if out of range
     NodeStorageType *getStoragePtr(int position);
+
+    /// @brief gets the last accessed or inserted node
+    /// @return pointer to the last accessed node, or null if none
     circlynode *getLastAccessedNode();
+
+    /// @brief gets the storage pointer of the last accessed or inserted node
+    /// @return pointer to storage of the last accessed node, or null if none
     NodeStorageType *getLastAccessedNodeStoragePtr();
 
 private:
+    /// @brief gets the node at position, updating node_ptr cache
+    /// @param position 1-... position in the list
+    /// @return pointer to node at position, or null if out of range
     circlynode *getNode(int position);
-    circlynode *head;
-    circlynode *tail;
-    circlynode *node_ptr;
-    circlynode *lastnode;
-    NodeStorageType *storage_ptr;
-    int list_nodes;
+    circlynode *head;         ///< list head
+    circlynode *tail;         ///< list tail
+    circlynode *node_ptr;     ///< traversal cache pointer
+    circlynode *lastnode;     ///< last accessed or inserted node
+    NodeStorageType *storage_ptr; ///< temporary storage pointer used by getStoragePtr
+    int list_nodes;           ///< number of list members
 };
 
 template <typename NodeStorageType, typename... StorageArgs>
-circulardoublylist<NodeStorageType, StorageArgs...>::circulardoublylist() : head(nullptr), tail(nullptr), node_ptr(nullptr), storage_ptr(nullptr), list_nodes(0) {}
+circulardoublylist<NodeStorageType, StorageArgs...>::circulardoublylist() : head(nullptr), tail(nullptr), node_ptr(nullptr), lastnode(nullptr), storage_ptr(nullptr), list_nodes(0) {}
 
 template <typename NodeStorageType, typename... StorageArgs>
 circulardoublylist<NodeStorageType, StorageArgs...>::~circulardoublylist()
@@ -69,6 +107,7 @@ circulardoublylist<NodeStorageType, StorageArgs...>::insertAtBeginning(StorageAr
         head = new_node;
     }
     list_nodes++;
+    lastnode = new_node;
     return new_node;
 }
 
@@ -92,6 +131,7 @@ circulardoublylist<NodeStorageType, StorageArgs...>::insertAtEnd(StorageArgs... 
         tail = new_node;
     }
     list_nodes++;
+    lastnode = new_node;
     return new_node;
 }
 
@@ -122,6 +162,7 @@ circulardoublylist<NodeStorageType, StorageArgs...>::insertAtPosition(int positi
     current->p = new_node;
 
     list_nodes++;
+    lastnode = new_node;
     return new_node;
 }
 
@@ -135,17 +176,23 @@ bool circulardoublylist<NodeStorageType, StorageArgs...>::deleteFromPosition(int
 
     circlynode *node_to_delete = getNode(position);
 
-    if (node_to_delete == head)
+    if (list_nodes == 1)
     {
-        head = head->n;
+        head = tail = nullptr;
     }
-    if (node_to_delete == tail)
+    else
     {
-        tail = tail->p;
+        if (node_to_delete == head)
+        {
+            head = head->n;
+        }
+        if (node_to_delete == tail)
+        {
+            tail = tail->p;
+        }
+        node_to_delete->p->n = node_to_delete->n;
+        node_to_delete->n->p = node_to_delete->p;
     }
-
-    node_to_delete->p->n = node_to_delete->n;
-    node_to_delete->n->p = node_to_delete->p;
 
     delete node_to_delete->sp;
     delete node_to_delete;
@@ -171,6 +218,7 @@ NodeStorageType *circulardoublylist<NodeStorageType, StorageArgs...>::getStorage
     if (access != nullptr)
     {
         storage_ptr = access->sp;
+        lastnode = access;
         return storage_ptr;
     }
     return storage_ptr;
@@ -180,13 +228,9 @@ template <typename NodeStorageType, typename... StorageArgs>
 typename circulardoublylist<NodeStorageType, StorageArgs...>::circlynode *
 circulardoublylist<NodeStorageType, StorageArgs...>::getNode(int position)
 {
-    if (list_nodes == 0)
+    if (list_nodes == 0 || position < 1)
     {
         return nullptr;
-    }
-    if (head == tail && head == nullptr)
-    {
-        return nullptr; // empty list
     }
     if (list_nodes < position)
     {
@@ -204,7 +248,7 @@ circulardoublylist<NodeStorageType, StorageArgs...>::getNode(int position)
     if ((list_nodes - position) < (list_nodes / 2))
     {
         node_ptr = tail;
-        for (int i = 0; i < position - 1; ++i)
+        for (int i = 0; i < list_nodes - position; ++i)
         {
             node_ptr = node_ptr->p;
         }
@@ -224,7 +268,7 @@ template <typename NodeStorageType, typename... StorageArgs>
 typename circulardoublylist<NodeStorageType, StorageArgs...>::circlynode *
 circulardoublylist<NodeStorageType, StorageArgs...>::getLastAccessedNode()
 {
-    return lastnode ? lastnode : nullptr;
+    return lastnode;
 }
 
 template <typename NodeStorageType, typename... StorageArgs>
